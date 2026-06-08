@@ -17,7 +17,7 @@ yq '.modules | to_entries | .[] | .key + " " + .value.image + " " + (.value.port
     container_name: $name
     restart: unless-stopped
     networks:
-      - monolith
+      - megalisk
     ports:
       - "$host_port:$container_port"
 EOF
@@ -31,5 +31,7 @@ EOF
 
         printf "\n" >> "$OUTFILE"
     done
+
+printf "networks:\n  megalisk:\n" >> "$OUTFILE"
 
 echo "[generate-compose] Wrote $OUTFILE"

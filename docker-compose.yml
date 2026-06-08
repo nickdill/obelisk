@@ -9,8 +9,8 @@ services:
       - ./nginx/data/certbot/conf:/etc/letsencrypt
       - ./nginx/data/certbot/www:/var/www/certbot
     ports:
-      - "80:80"
-      - "443:443"
+      - "${PORT}:80"
+      - "${SSL_PORT}:443"
     networks:
       - megalisk
     container_name: nginx-webserver
