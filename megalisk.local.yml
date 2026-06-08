@@ -1,0 +1,10 @@
+version: 0.0
+name: "Megalisk"
+type: megalisk
+modules:
+  example:
+    git_source: https://github.com/nickdill/megalisk-module-template
+    port: 3000
+    domain:
+    env:
+      NODE_ENV: production

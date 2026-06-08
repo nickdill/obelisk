@@ -1,0 +1,10 @@
+version: 0.0
+name: "Megalisk"
+type: megalisk
+modules:
+  monorails:
+    image:
+    port: 3000
+    domain:
+    env:
+      NODE_ENV: production
