@@ -40,17 +40,24 @@ if yq '.modules | to_entries | .[].value.image' "$CONFIG_FILE" | grep -q '\.dkr\
 fi
 
 # Pull images and extract or clone per-module scripts
-yq '.modules | to_entries | .[] | .key + " " + .value.image + " " + (.value.git_source // "none")' "$CONFIG_FILE" \
+yq '.modules | to_entries | .[] | .key + " " + (.value.image // "none") + " " + (.value.git_source // "none")' "$CONFIG_FILE" \
     | while IFS=' ' read -r name image git_source; do
         if [ "$git_source" != "none" ]; then
-            if [ -d "modules/$name/.git" ]; then
-                echo "[Megalisk] Updating $name..."
-                git -C "modules/$name" fetch origin
-                git -C "modules/$name" merge
-            else
-                echo "[Megalisk] Cloning $name from $git_source..."
-                git clone "$git_source" "modules/$name"
-            fi
+            case "$git_source" in
+                ./*|../*|/*)
+                    echo "[Megalisk] Local path for $name: $git_source (skipping clone)"
+                    ;;
+                *)
+                    if [ -d "modules/$name/.git" ]; then
+                        echo "[Megalisk] Updating $name..."
+                        git -C "modules/$name" fetch origin
+                        git -C "modules/$name" merge
+                    else
+                        echo "[Megalisk] Cloning $name from $git_source..."
+                        git clone "$git_source" "modules/$name"
+                    fi
+                    ;;
+            esac
         else
             mkdir -p "modules/$name/.megalisk"
             echo "[Megalisk] Pulling $name ($image)..."
