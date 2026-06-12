@@ -1,5 +1,4 @@
 .env
 .dockerignore
 docker-compose.override.yml
-nginx/data/nginx/*.conf
 modules/
