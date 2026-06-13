@@ -1,12 +1,18 @@
 services:
   nginx-webserver:
-    image: nginx:1.15-alpine
-    restart: unless-stopped
+    image: nginx:1.27-alpine
     ports:
-      - "${PORT:-80}:80"
-      - "${SSL_PORT:-443}:443"
+      - "${OBELISK_HTTP_PORT:-80}:80"
+      - "${OBELISK_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./.obelisk/nginx:/etc/nginx/conf.d:ro
     networks:
       - obelisk
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
 networks:
   obelisk:
+    driver: bridge
