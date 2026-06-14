@@ -14,7 +14,7 @@ echo "[Obelisk] Generating stack config..."
 OBELISK_MODE=swarm sh .obelisk/scripts/generate.sh
 
 echo "[Obelisk] Deploying stack..."
-docker stack deploy --with-registry-auth --detach=true \
+docker stack deploy --with-registry-auth \
     -c docker-compose.yml \
     -c docker-compose.override.yml \
     -c docker-compose.swarm.yml \
