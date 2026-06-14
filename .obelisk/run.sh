@@ -4,46 +4,17 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-if [ -f obelisk.local.yml ]; then
-    CONFIG_FILE=obelisk.local.yml
-else
-    CONFIG_FILE=obelisk.yml
+existing_driver=$(docker network inspect obelisk --format '{{.Driver}}' 2>/dev/null || echo "")
+if [ "$existing_driver" = "bridge" ]; then
+    echo "[Obelisk] Bringing down compose stack to free bridge network..."
+    docker compose down 2>/dev/null || true
 fi
-export CONFIG_FILE
-export OBELISK_MODE=swarm
 
-echo "[Obelisk] Building static modules..."
-yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
-    module_type=$(yq e ".modules[\"${name}\"].type // \"module\"" "$CONFIG_FILE")
-    if [ "$module_type" != "static" ]; then
-        continue
-    fi
-    git_source=$(yq e ".modules[\"${name}\"].git_source" "$CONFIG_FILE")
-    build_cmd=$(yq e ".modules[\"${name}\"].build // \"\"" "$CONFIG_FILE")
-    dest="$SCRIPT_DIR/static/${name}"
-    if [ "$git_source" != "null" ] && [ -n "$git_source" ]; then
-        if [ -d "${dest}/.git" ]; then
-            echo "[Obelisk] Updating static module ${name}..."
-            git -C "$dest" pull --ff-only
-        else
-            echo "[Obelisk] Cloning static module ${name}..."
-            git clone "$git_source" "$dest"
-        fi
-    fi
-    if [ -n "$build_cmd" ] && [ "$build_cmd" != "null" ] && [ -d "$dest" ]; then
-        echo "[Obelisk] Building static module ${name}..."
-        (cd "$dest" && sh -c "$build_cmd")
-    fi
-done
-
-echo "[Obelisk] Generating stack override..."
-sh .obelisk/scripts/generate-compose.sh
-
-echo "[Obelisk] Generating nginx configs..."
-sh .obelisk/scripts/generate-nginx.sh
+echo "[Obelisk] Generating stack config..."
+OBELISK_MODE=swarm sh .obelisk/scripts/generate.sh
 
 echo "[Obelisk] Deploying stack..."
-docker stack deploy --with-registry-auth \
+docker stack deploy --with-registry-auth --detach=true \
     -c docker-compose.yml \
     -c docker-compose.override.yml \
     -c docker-compose.swarm.yml \

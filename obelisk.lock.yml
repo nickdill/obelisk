@@ -1,0 +1,4 @@
+ports:
+  agent: 9100
+  dev: 9101
+  dashboard: 9102

@@ -22,9 +22,14 @@ fi
 export CONFIG_FILE
 
 # Initialize Docker Swarm (idempotent)
-if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -q 'active'; then
+if ! docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -qx 'active'; then
     echo "[Obelisk] Initializing Docker Swarm..."
-    docker swarm init
+    if [ -n "$OBELISK_ADVERTISE_ADDR" ]; then
+        LISTEN_ADDR="${OBELISK_LISTEN_ADDR:-0.0.0.0:2377}"
+        docker swarm init --advertise-addr "$OBELISK_ADVERTISE_ADDR" --listen-addr "$LISTEN_ADDR"
+    else
+        docker swarm init
+    fi
 else
     echo "[Obelisk] Docker Swarm already active."
 fi

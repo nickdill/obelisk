@@ -4,14 +4,10 @@ type: server
 modules:
   agent:
     git_source: ../obelisk-agent
-    port: 9100
     domain: agent.localhost
   dev:
     git_source: ../obelisk-dev
-    port: 9101
     domain: dev.localhost
-  #
-  # example with a local or git source (built by Docker Compose):
-  #   git_source: ../my-module
-  #   port: 3000
-  #   domain: my-module.example.com
+  dashboard:
+    git_source: ../obelisk-module-dashboard
+    domain: dashboard.localhost
