@@ -2,3 +2,5 @@
 .dockerignore
 docker-compose.override.yml
 modules/
+_work/
+_docs/
