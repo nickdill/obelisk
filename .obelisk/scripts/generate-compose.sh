@@ -77,6 +77,7 @@ YAML
             cat >> docker-compose.override.yml << YAML
   ${name}:
     image: ${image}
+    profiles: ["local"]
     expose:
       - "${port}"
     environment:
@@ -93,6 +94,7 @@ YAML
   ${name}:
     build:
       context: ${git_source}
+    profiles: ["local"]
     expose:
       - "${port}"
     environment:

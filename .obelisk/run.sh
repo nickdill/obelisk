@@ -17,7 +17,7 @@ if [ "$swarm_state" != "active" ]; then
         docker swarm leave --force 2>/dev/null || true
     fi
     echo "[Obelisk] Initializing Docker Swarm..."
-    [ -f .env ] && . ./.env
+    [ -f .env ] && set -a && . ./.env && set +a
     if [ -n "${OBELISK_ADVERTISE_ADDR:-}" ]; then
         LISTEN_ADDR="${OBELISK_LISTEN_ADDR:-0.0.0.0:2377}"
         docker swarm init --advertise-addr "$OBELISK_ADVERTISE_ADDR" --listen-addr "$LISTEN_ADDR"
@@ -26,7 +26,7 @@ if [ "$swarm_state" != "active" ]; then
     fi
 fi
 
-[ -f .env ] && . ./.env
+[ -f .env ] && set -a && . ./.env && set +a
 
 echo "[Obelisk] Generating stack config..."
 OBELISK_MODE=swarm sh .obelisk/scripts/generate.sh
@@ -49,4 +49,5 @@ if [ -n "$NGINX_CONTAINER" ]; then
     docker exec "$NGINX_CONTAINER" nginx -s reload 2>/dev/null || true
 fi
 
+sh .obelisk/scripts/print-urls.sh
 echo "[Obelisk] Running."

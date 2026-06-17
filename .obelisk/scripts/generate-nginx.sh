@@ -123,6 +123,10 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
     fi
     domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
 
+    if [ -z "$domain" ] || [ "$domain" = "null" ]; then
+        continue
+    fi
+
     if [ "$module_type" = "static" ]; then
         dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
         if [ -z "$dist" ] || [ "$dist" = "null" ]; then
