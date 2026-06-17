@@ -6,6 +6,7 @@ cd "$SCRIPT_DIR"
 
 CONFIG_FILE="${CONFIG_FILE:-obelisk.yml}"
 SSL_ENABLED="${OBELISK_SSL:-false}"
+OBELISK_ENV="${OBELISK_ENV:-local}"
 
 mkdir -p .obelisk/nginx
 find .obelisk/nginx -maxdepth 1 -name '*.conf' ! -name 'default.conf' -delete
@@ -49,7 +50,7 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
             module_type="module"
         fi
     fi
-    domain=$(yq e ".modules[\"${name}\"].domain" "$CONFIG_FILE")
+    domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
 
     if [ "$module_type" = "static" ]; then
         dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")

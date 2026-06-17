@@ -12,6 +12,7 @@ else
     CONFIG_FILE=obelisk.yml
 fi
 
+OBELISK_ENV="${OBELISK_ENV:-local}"
 RSA_KEY_SIZE=4096
 CERTBOT_DIR=".obelisk/certbot"
 STAGING="${OBELISK_SSL_STAGING:-0}"
@@ -39,7 +40,7 @@ pending_file="$CERTBOT_DIR/.pending_domains"
 rm -f "$pending_file"
 
 yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
-    domain=$(yq e ".modules[\"${name}\"].domain" "$CONFIG_FILE")
+    domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
     if [ -z "$domain" ] || [ "$domain" = "null" ]; then
         continue
     fi

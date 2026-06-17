@@ -10,6 +10,7 @@ else
     CONFIG_FILE=obelisk.yml
 fi
 export CONFIG_FILE
+export OBELISK_ENV="${OBELISK_ENV:-local}"
 
 LOCK_FILE="obelisk.lock.yml"
 export LOCK_FILE

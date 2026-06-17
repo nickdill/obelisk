@@ -4,6 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
+export OBELISK_ENV="${OBELISK_ENV:-local}"
 export OBELISK_SSL=false
 
 existing_driver=$(docker network inspect obelisk --format '{{.Driver}}' 2>/dev/null || echo "")

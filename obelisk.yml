@@ -4,7 +4,9 @@ type: server
 modules:
   agent:
     git_source: ../obelisk-agent
-    domain: agent.localhost
+    domains:
+      local: agent.localhost
   dev:
     git_source: ../obelisk-dev
-    domain: dev.localhost
+    domains:
+      local: dev.localhost
