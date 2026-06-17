@@ -11,8 +11,64 @@ OBELISK_ENV="${OBELISK_ENV:-local}"
 mkdir -p .obelisk/nginx
 find .obelisk/nginx -maxdepth 1 -name '*.conf' ! -name 'default.conf' -delete
 
+server_domain=$(yq e ".domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
+
 if [ "$SSL_ENABLED" = "true" ]; then
-    cat > ".obelisk/nginx/default.conf" << 'NGINX'
+    if [ -n "$server_domain" ]; then
+        cat > ".obelisk/nginx/default.conf" << NGINX
+server {
+    listen 80;
+    server_name ${server_domain};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${server_domain};
+
+    ssl_certificate /etc/letsencrypt/live/${server_domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${server_domain}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        return 200 'obelisk ok\n';
+        add_header Content-Type text/plain;
+    }
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 444;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    server_name _;
+
+    ssl_certificate /etc/letsencrypt/live/default/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/default/privkey.pem;
+
+    return 444;
+}
+NGINX
+    else
+        cat > ".obelisk/nginx/default.conf" << 'NGINX'
 server {
     listen 80 default_server;
     server_name _;
@@ -37,6 +93,21 @@ server {
     return 444;
 }
 NGINX
+    fi
+else
+    if [ -n "$server_domain" ]; then
+        cat > ".obelisk/nginx/default.conf" << NGINX
+server {
+    listen 80 default_server;
+    server_name ${server_domain};
+
+    location / {
+        return 200 'obelisk ok\n';
+        add_header Content-Type text/plain;
+    }
+}
+NGINX
+    fi
 fi
 
 yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do

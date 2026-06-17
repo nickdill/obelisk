@@ -39,6 +39,24 @@ fi
 pending_file="$CERTBOT_DIR/.pending_domains"
 rm -f "$pending_file"
 
+# Server-level domain
+server_domain=$(yq e ".domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
+if [ -n "$server_domain" ]; then
+    if [ -f "$CERTBOT_DIR/conf/live/${server_domain}/fullchain.pem" ] && \
+       [ -f "$CERTBOT_DIR/conf/live/${server_domain}/privkey.pem" ]; then
+        echo "[Obelisk] Certificate for ${server_domain} already exists, skipping."
+    else
+        echo "[Obelisk] Creating dummy certificate for ${server_domain}..."
+        mkdir -p "$CERTBOT_DIR/conf/live/${server_domain}"
+        openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$CERTBOT_DIR/conf/live/${server_domain}/privkey.pem" \
+            -out "$CERTBOT_DIR/conf/live/${server_domain}/fullchain.pem" \
+            -subj "/CN=${server_domain}" 2>/dev/null
+        echo "${server_domain}" >> "$pending_file"
+    fi
+fi
+
+# Module domains
 yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
     domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
     if [ -z "$domain" ] || [ "$domain" = "null" ]; then

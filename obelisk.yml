@@ -1,6 +1,8 @@
 version: "0.1"
 name: "obelisk"
 type: server
+domains:
+  local: obelisk.localhost
 modules:
   agent:
     git_source: ../obelisk-agent
