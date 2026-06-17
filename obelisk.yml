@@ -8,6 +8,3 @@ modules:
   dev:
     git_source: ../obelisk-dev
     domain: dev.localhost
-  dashboard:
-    git_source: ../obelisk-module-dashboard
-    domain: dashboard.localhost

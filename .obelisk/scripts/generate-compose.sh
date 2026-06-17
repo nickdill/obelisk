@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$SCRIPT_DIR"
 
 CONFIG_FILE="${CONFIG_FILE:-obelisk.yml}"
+SSL_ENABLED="${OBELISK_SSL:-false}"
 
 modules=$(yq e '.modules // {} | keys | .[]' "$CONFIG_FILE")
 
@@ -41,7 +42,6 @@ echo "$modules" | while read -r name; do
     replicas=$(yq e ".modules[\"${name}\"].replicas // 1" "$CONFIG_FILE")
 
     if [ "$module_type" = "static" ]; then
-        # Static modules are served directly by nginx — mount their dist into the nginx container.
         if [ "$git_source" != "null" ] && [ -n "$git_source" ]; then
             dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
             if [ -z "$dist" ] || [ "$dist" = "null" ]; then
@@ -106,14 +106,69 @@ YAML
     fi
 done
 
+# Nginx overrides: static module volumes + SSL volumes/command
+nginx_needs_override=false
+ssl_volumes=""
+ssl_command=""
+
+if [ "$SSL_ENABLED" = "true" ]; then
+    nginx_needs_override=true
+    ssl_volumes="      - ./.obelisk/certbot/conf:/etc/letsencrypt:ro
+      - ./.obelisk/certbot/www:/var/www/certbot:ro"
+    ssl_command='    command: "/bin/sh -c '"'"'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"'"'"'
+fi
+
 if [ -s "$static_volumes_tmp" ]; then
+    nginx_needs_override=true
+fi
+
+if [ "$nginx_needs_override" = "true" ]; then
     cat >> docker-compose.override.yml << 'YAML'
   nginx-webserver:
-    volumes:
 YAML
-    cat "$static_volumes_tmp" >> docker-compose.override.yml
+    if [ -n "$ssl_command" ]; then
+        echo "$ssl_command" >> docker-compose.override.yml
+    fi
+    echo "    volumes:" >> docker-compose.override.yml
+    if [ -s "$static_volumes_tmp" ]; then
+        cat "$static_volumes_tmp" >> docker-compose.override.yml
+    fi
+    if [ -n "$ssl_volumes" ]; then
+        echo "$ssl_volumes" >> docker-compose.override.yml
+    fi
 fi
 rm -f "$static_volumes_tmp"
+
+# Certbot renewal service
+if [ "$SSL_ENABLED" = "true" ]; then
+    if [ "${OBELISK_MODE:-}" = "swarm" ]; then
+        cat >> docker-compose.override.yml << 'YAML'
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./.obelisk/certbot/conf:/etc/letsencrypt
+      - ./.obelisk/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - obelisk
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+YAML
+    else
+        cat >> docker-compose.override.yml << 'YAML'
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./.obelisk/certbot/conf:/etc/letsencrypt
+      - ./.obelisk/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - obelisk
+YAML
+    fi
+fi
 
 # If no services were written, the file has only "services:" which is invalid YAML
 if ! grep -q '^\s' docker-compose.override.yml; then

@@ -10,8 +10,31 @@ if [ "$existing_driver" = "bridge" ]; then
     docker compose down 2>/dev/null || true
 fi
 
+swarm_state=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo "unknown")
+if [ "$swarm_state" != "active" ]; then
+    if [ "$swarm_state" != "inactive" ] && [ "$swarm_state" != "unknown" ]; then
+        echo "[Obelisk] Swarm in bad state (${swarm_state}), leaving..."
+        docker swarm leave --force 2>/dev/null || true
+    fi
+    echo "[Obelisk] Initializing Docker Swarm..."
+    [ -f .env ] && . ./.env
+    if [ -n "${OBELISK_ADVERTISE_ADDR:-}" ]; then
+        LISTEN_ADDR="${OBELISK_LISTEN_ADDR:-0.0.0.0:2377}"
+        docker swarm init --advertise-addr "$OBELISK_ADVERTISE_ADDR" --listen-addr "$LISTEN_ADDR"
+    else
+        docker swarm init
+    fi
+fi
+
+[ -f .env ] && . ./.env
+
 echo "[Obelisk] Generating stack config..."
 OBELISK_MODE=swarm sh .obelisk/scripts/generate.sh
+
+if [ "${OBELISK_SSL:-false}" = "true" ]; then
+    echo "[Obelisk] Bootstrapping SSL certificates..."
+    sh .obelisk/ssl/init-ssl.sh
+fi
 
 echo "[Obelisk] Deploying stack..."
 docker stack deploy --with-registry-auth \
