@@ -95,11 +95,10 @@ server {
 NGINX
     fi
 else
-    if [ -n "$server_domain" ]; then
-        cat > ".obelisk/nginx/default.conf" << NGINX
+    cat > ".obelisk/nginx/default.conf" << 'NGINX'
 server {
     listen 80 default_server;
-    server_name ${server_domain};
+    server_name _;
 
     location / {
         return 200 'obelisk ok\n';
@@ -107,7 +106,6 @@ server {
     }
 }
 NGINX
-    fi
 fi
 
 yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
