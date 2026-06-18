@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e
 
+SCALED_DOWN=""
+cleanup() {
+    docker stop obelisk-ssl-bootstrap 2>/dev/null || true
+    if [ -n "$SCALED_DOWN" ]; then
+        docker service scale obelisk_nginx-webserver=1 --detach=false || true
+    fi
+}
+trap cleanup EXIT
+
 SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$SCRIPT_DIR"
 
@@ -81,6 +90,13 @@ if [ ! -f "$pending_file" ]; then
     exit 0
 fi
 
+# Stop existing nginx so ports 80/443 are free for the bootstrap container.
+if docker service inspect obelisk_nginx-webserver >/dev/null 2>&1; then
+    echo "[Obelisk] Scaling down swarm nginx to free ports..."
+    docker service scale obelisk_nginx-webserver=0 --detach=false || true
+    SCALED_DOWN=1
+fi
+
 # Start a temporary nginx container to serve ACME challenges.
 # Uses docker run directly so it works before stack deploy (swarm mode).
 echo "[Obelisk] Starting temporary nginx for ACME challenges..."
@@ -126,13 +142,16 @@ while IFS= read -r domain; do
         --rsa-key-size "$RSA_KEY_SIZE" \
         --agree-tos \
         --non-interactive \
-        --force-renewal || echo "[Obelisk] WARNING: Failed to obtain certificate for ${domain}"
+        --force-renewal || {
+        echo "[Obelisk] WARNING: Failed to obtain certificate for ${domain}, restoring dummy..."
+        mkdir -p "$CERTBOT_DIR/conf/live/${domain}"
+        openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$CERTBOT_DIR/conf/live/${domain}/privkey.pem" \
+            -out "$CERTBOT_DIR/conf/live/${domain}/fullchain.pem" \
+            -subj "/CN=${domain}"
+    }
 
 done < "$pending_file"
 rm -f "$pending_file"
-
-# Stop the temporary nginx
-echo "[Obelisk] Stopping bootstrap nginx..."
-docker stop obelisk-ssl-bootstrap 2>/dev/null || true
 
 echo "[Obelisk] SSL initialization complete."
