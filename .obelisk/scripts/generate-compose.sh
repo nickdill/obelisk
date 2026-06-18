@@ -56,13 +56,27 @@ echo "$modules" | while read -r name; do
         continue
     fi
 
+    env_block="      PORT: \"${port}\""
+    env_keys=$(yq e ".modules[\"${name}\"].environment // {} | keys | .[]" "$CONFIG_FILE" 2>/dev/null || true)
+    if [ -n "$env_keys" ]; then
+        extra=$(echo "$env_keys" | while read -r key; do
+            [ "$key" = "PORT" ] && continue
+            val=$(yq e ".modules[\"${name}\"].environment[\"${key}\"]" "$CONFIG_FILE")
+            printf '      %s: "%s"\n' "$key" "$val"
+        done)
+        if [ -n "$extra" ]; then
+            env_block="${env_block}
+${extra}"
+        fi
+    fi
+
     if [ "$image" != "null" ] && [ -n "$image" ]; then
         if [ "${OBELISK_MODE:-}" = "swarm" ]; then
             cat >> docker-compose.override.yml << YAML
   ${name}:
     image: ${image}
     environment:
-      PORT: "${port}"
+${env_block}
     networks:
       - obelisk
     deploy:
@@ -81,7 +95,7 @@ YAML
     expose:
       - "${port}"
     environment:
-      PORT: "${port}"
+${env_block}
     networks:
       - obelisk
 YAML
@@ -98,7 +112,7 @@ YAML
     expose:
       - "${port}"
     environment:
-      PORT: "${port}"
+${env_block}
     networks:
       - obelisk
 YAML

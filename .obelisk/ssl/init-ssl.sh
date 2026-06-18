@@ -31,6 +31,14 @@ echo "[Obelisk] Initializing SSL certificates..."
 
 mkdir -p "$CERTBOT_DIR/conf" "$CERTBOT_DIR/www"
 
+# Fix ownership on certbot dirs that may be root-owned from previous Docker runs
+fix_certbot_permissions() {
+    docker run --rm \
+        -v "${SCRIPT_DIR}/${CERTBOT_DIR}/conf:/etc/letsencrypt" \
+        alpine:3.20 chown -R "$(id -u):$(id -g)" /etc/letsencrypt 2>/dev/null || true
+}
+fix_certbot_permissions
+
 cp .obelisk/ssl/options-ssl-nginx.conf "$CERTBOT_DIR/conf/options-ssl-nginx.conf"
 cp .obelisk/ssl/ssl-dhparams.pem "$CERTBOT_DIR/conf/ssl-dhparams.pem"
 
@@ -144,6 +152,7 @@ while IFS= read -r domain; do
         --non-interactive \
         --force-renewal || {
         echo "[Obelisk] WARNING: Failed to obtain certificate for ${domain}, restoring dummy..."
+        fix_certbot_permissions
         mkdir -p "$CERTBOT_DIR/conf/live/${domain}"
         openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
             -keyout "$CERTBOT_DIR/conf/live/${domain}/privkey.pem" \
