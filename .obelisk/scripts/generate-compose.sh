@@ -46,13 +46,17 @@ echo "$modules" | while read -r name; do
             dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
             if [ -z "$dist" ] || [ "$dist" = "null" ]; then
                 if [ -f "${git_source}/obelisk.yml" ]; then
-                    dist=$(yq e ".dist // \"dist\"" "${git_source}/obelisk.yml")
+                    dist=$(yq e ".dist // \".\"" "${git_source}/obelisk.yml")
                 else
-                    dist="dist"
+                    dist="."
                 fi
             fi
             abs_source=$(cd "$git_source" && pwd)
-            echo "      - ${abs_source}/${dist}:/obelisk/static/${name}/${dist}:ro" >> "$static_volumes_tmp"
+            if [ "$dist" = "." ]; then
+                echo "      - ${abs_source}:/obelisk/static/${name}:ro" >> "$static_volumes_tmp"
+            else
+                echo "      - ${abs_source}/${dist}:/obelisk/static/${name}/${dist}:ro" >> "$static_volumes_tmp"
+            fi
         fi
         continue
     fi

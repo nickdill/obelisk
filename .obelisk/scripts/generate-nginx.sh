@@ -154,10 +154,16 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
         dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
         if [ -z "$dist" ] || [ "$dist" = "null" ]; then
             if [ "$git_source" != "null" ] && [ -n "$git_source" ] && [ -f "${git_source}/obelisk.yml" ]; then
-                dist=$(yq e ".dist // \"dist\"" "${git_source}/obelisk.yml")
+                dist=$(yq e ".dist // \".\"" "${git_source}/obelisk.yml")
             else
-                dist="dist"
+                dist="."
             fi
+        fi
+
+        if [ "$dist" = "." ]; then
+            static_root="/obelisk/static/${name}/"
+        else
+            static_root="/obelisk/static/${name}/${dist}/"
         fi
 
         if [ "$SSL_ENABLED" = "true" ]; then
@@ -184,7 +190,7 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    root /obelisk/static/${name}/${dist}/;
+    root ${static_root};
     index index.html;
 
     location / {
@@ -200,7 +206,7 @@ server {
     listen 80;
     server_name ${domain};
 
-    root /obelisk/static/${name}/${dist}/;
+    root ${static_root};
     index index.html;
 
     location / {
