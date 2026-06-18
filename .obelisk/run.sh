@@ -31,12 +31,14 @@ fi
 if [ -n "${REGISTRY_HOST:-}" ]; then
     echo "[Obelisk] Logging in to ${REGISTRY_HOST}..."
     echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY_HOST}" \
-        --username "${REGISTRY_USER}" --password-stdin
+        --username "${REGISTRY_USER}" --password-stdin \
+        || echo "[Obelisk] Warning: registry login failed — image pulls may fail"
 elif [ -n "${AWS_REGION:-}" ]; then
     echo "[Obelisk] Logging in to ECR..."
     aws ecr get-login-password --region "${AWS_REGION}" \
       | docker login --username AWS --password-stdin \
-        "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com" \
+        || echo "[Obelisk] Warning: ECR login failed — image pulls may fail"
 fi
 
 echo "[Obelisk] Generating stack config..."

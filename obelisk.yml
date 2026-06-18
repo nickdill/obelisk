@@ -5,10 +5,12 @@ domains:
   local: obelisk.localhost
 modules:
   agent:
+    image: ghcr.io/nickdill/obelisk-agent
     git_source: ../obelisk-agent
     domains:
       local: agent.localhost
   dev:
+    image: ghcr.io/nickdill/obelisk-dev
     git_source: ../obelisk-dev
     domains:
       local: dev.localhost
