@@ -5,3 +5,4 @@ modules/
 _work/
 _docs/
 .obelisk/certbot/
+.obelisk/nginx/*.conf

@@ -51,7 +51,8 @@ echo "$modules" | while read -r name; do
                     dist="dist"
                 fi
             fi
-            echo "      - ${git_source}/${dist}:/obelisk/static/${name}/${dist}:ro" >> "$static_volumes_tmp"
+            abs_source=$(cd "$git_source" && pwd)
+            echo "      - ${abs_source}/${dist}:/obelisk/static/${name}/${dist}:ro" >> "$static_volumes_tmp"
         fi
         continue
     fi
@@ -134,8 +135,10 @@ if [ "$SSL_ENABLED" = "true" ]; then
     ssl_command='    command: "/bin/sh -c '"'"'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"'"'"'
 fi
 
+has_static=false
 if [ -s "$static_volumes_tmp" ]; then
     nginx_needs_override=true
+    has_static=true
 fi
 
 if [ "$nginx_needs_override" = "true" ]; then
@@ -189,7 +192,7 @@ fi
 # If no services were written, the file has only "services:" which is invalid YAML
 if ! grep -q '^\s' docker-compose.override.yml; then
     printf 'services: {}\n' > docker-compose.override.yml
-    if [ "${OBELISK_MODE:-}" = "swarm" ]; then
+    if [ "${OBELISK_MODE:-}" = "swarm" ] && [ "$has_static" = "false" ]; then
         echo "[Obelisk] warning: no deployable services found — swarm mode requires 'image:' fields on modules; 'git_source' modules are dev-only" >&2
     fi
 fi
