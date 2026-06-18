@@ -28,6 +28,17 @@ fi
 
 [ -f .env ] && set -a && . ./.env && set +a
 
+if [ -n "${REGISTRY_HOST:-}" ]; then
+    echo "[Obelisk] Logging in to ${REGISTRY_HOST}..."
+    echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY_HOST}" \
+        --username "${REGISTRY_USER}" --password-stdin
+elif [ -n "${AWS_REGION:-}" ]; then
+    echo "[Obelisk] Logging in to ECR..."
+    aws ecr get-login-password --region "${AWS_REGION}" \
+      | docker login --username AWS --password-stdin \
+        "${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+fi
+
 echo "[Obelisk] Generating stack config..."
 OBELISK_MODE=swarm sh .obelisk/scripts/generate.sh
 

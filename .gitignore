@@ -6,3 +6,4 @@ _work/
 _docs/
 .obelisk/certbot/
 .obelisk/nginx/*.conf
+!.obelisk/nginx/default.conf
