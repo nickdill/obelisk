@@ -39,8 +39,11 @@ server {
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     location / {
-        return 200 'obelisk ok\n';
-        add_header Content-Type text/plain;
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
     }
 }
 
@@ -53,7 +56,11 @@ server {
     }
 
     location / {
-        return 444;
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
     }
 }
 
@@ -64,7 +71,13 @@ server {
     ssl_certificate /etc/letsencrypt/live/default/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/default/privkey.pem;
 
-    return 444;
+    location / {
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
+    }
 }
 NGINX
     else
@@ -78,8 +91,11 @@ server {
     }
 
     location / {
-        return 200 'obelisk ok\n';
-        add_header Content-Type text/plain;
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
     }
 }
 
@@ -90,7 +106,13 @@ server {
     ssl_certificate /etc/letsencrypt/live/default/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/default/privkey.pem;
 
-    return 444;
+    location / {
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
+    }
 }
 NGINX
     fi
@@ -101,8 +123,11 @@ server {
     server_name _;
 
     location / {
-        return 200 'obelisk ok\n';
-        add_header Content-Type text/plain;
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
     }
 }
 NGINX
