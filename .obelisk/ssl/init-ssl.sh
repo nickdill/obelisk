@@ -32,7 +32,7 @@ if [ ! -f "$CERTBOT_DIR/conf/live/default/fullchain.pem" ]; then
     openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
         -keyout "$CERTBOT_DIR/conf/live/default/privkey.pem" \
         -out "$CERTBOT_DIR/conf/live/default/fullchain.pem" \
-        -subj '/CN=localhost' 2>/dev/null
+        -subj '/CN=localhost'
 fi
 
 # Collect domains that need new certificates
@@ -51,7 +51,7 @@ if [ -n "$server_domain" ]; then
         openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
             -keyout "$CERTBOT_DIR/conf/live/${server_domain}/privkey.pem" \
             -out "$CERTBOT_DIR/conf/live/${server_domain}/fullchain.pem" \
-            -subj "/CN=${server_domain}" 2>/dev/null
+            -subj "/CN=${server_domain}"
         echo "${server_domain}" >> "$pending_file"
     fi
 fi
@@ -72,7 +72,7 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
     openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
         -keyout "$CERTBOT_DIR/conf/live/${domain}/privkey.pem" \
         -out "$CERTBOT_DIR/conf/live/${domain}/fullchain.pem" \
-        -subj "/CN=${domain}" 2>/dev/null
+        -subj "/CN=${domain}"
     echo "${domain}" >> "$pending_file"
 done
 
