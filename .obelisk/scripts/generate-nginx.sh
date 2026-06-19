@@ -25,7 +25,14 @@ server {
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
+        if (\$http_x_forwarded_proto != "https") {
+            return 301 https://\$host\$request_uri;
+        }
+        default_type text/html;
+        return 200 '<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>obelisk</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0a;color:#e0e0e0;font-family:system-ui,sans-serif}.c{text-align:center}h1{font-size:2rem;font-weight:300;letter-spacing:.1em;margin-bottom:.5rem}p{color:#666;font-size:.85rem}</style>
+</head><body><div class="c"><h1>obelisk</h1><p>server is running</p></div></body></html>';
     }
 }
 
@@ -172,12 +179,20 @@ server {
     listen 80;
     server_name ${domain};
 
+    root ${static_root};
+    index index.html;
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
+        if (\$http_x_forwarded_proto != "https") {
+            return 301 https://\$host\$request_uri;
+        }
+        try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
     }
 }
 
@@ -241,7 +256,16 @@ server {
     }
 
     location / {
-        return 301 https://\$host\$request_uri;
+        if (\$http_x_forwarded_proto != "https") {
+            return 301 https://\$host\$request_uri;
+        }
+        resolver 127.0.0.11 valid=10s;
+        set \$upstream http://${name}:${port};
+        proxy_pass \$upstream;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
     }
 }
 
@@ -278,6 +302,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
     }
 }
 NGINX
