@@ -25,9 +25,6 @@ server {
     }
 
     location / {
-        if (\$http_x_forwarded_proto != "https") {
-            return 301 https://\$host\$request_uri;
-        }
         default_type text/html;
         return 200 '<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>obelisk</title>
@@ -187,9 +184,6 @@ server {
     }
 
     location / {
-        if (\$http_x_forwarded_proto != "https") {
-            return 301 https://\$host\$request_uri;
-        }
         try_files \$uri \$uri/ /index.html;
         add_header Cache-Control "no-cache" always;
         add_header X-Content-Type-Options "nosniff" always;
@@ -256,9 +250,6 @@ server {
     }
 
     location / {
-        if (\$http_x_forwarded_proto != "https") {
-            return 301 https://\$host\$request_uri;
-        }
         resolver 127.0.0.11 valid=10s;
         set \$upstream http://${name}:${port};
         proxy_pass \$upstream;
