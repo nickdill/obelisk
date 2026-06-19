@@ -12,5 +12,7 @@ modules:
   dev:
     image: ghcr.io/nickdill/obelisk-dev
     git_source: ../obelisk-dev
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     domains:
       local: dev.localhost

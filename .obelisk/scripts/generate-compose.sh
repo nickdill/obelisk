@@ -75,6 +75,14 @@ ${extra}"
         fi
     fi
 
+    vol_block=""
+    vol_entries=$(yq e ".modules[\"${name}\"].volumes // [] | .[]" "$CONFIG_FILE" 2>/dev/null || true)
+    if [ -n "$vol_entries" ]; then
+        vol_block="    volumes:"
+        vol_block="${vol_block}
+$(echo "$vol_entries" | while read -r v; do printf '      - %s\n' "$v"; done)"
+    fi
+
     if [ "$image" != "null" ] && [ -n "$image" ]; then
         if [ "${OBELISK_MODE:-}" = "swarm" ]; then
             cat >> docker-compose.override.yml << YAML
@@ -92,6 +100,9 @@ ${env_block}
       restart_policy:
         condition: on-failure
 YAML
+            if [ -n "$vol_block" ]; then
+                echo "$vol_block" >> docker-compose.override.yml
+            fi
         else
             cat >> docker-compose.override.yml << YAML
   ${name}:
@@ -104,6 +115,9 @@ ${env_block}
     networks:
       - obelisk
 YAML
+            if [ -n "$vol_block" ]; then
+                echo "$vol_block" >> docker-compose.override.yml
+            fi
         fi
     elif [ "$git_source" != "null" ] && [ -n "$git_source" ]; then
         if [ "${OBELISK_MODE:-}" = "swarm" ]; then
@@ -121,6 +135,9 @@ ${env_block}
     networks:
       - obelisk
 YAML
+            if [ -n "$vol_block" ]; then
+                echo "$vol_block" >> docker-compose.override.yml
+            fi
         fi
     else
         echo "[Obelisk] warning: module '${name}' has no image or git_source — skipping" >&2
