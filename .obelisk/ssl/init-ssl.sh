@@ -39,9 +39,6 @@ fix_certbot_permissions() {
 }
 fix_certbot_permissions
 
-cp .obelisk/ssl/options-ssl-nginx.conf "$CERTBOT_DIR/conf/options-ssl-nginx.conf"
-cp .obelisk/ssl/ssl-dhparams.pem "$CERTBOT_DIR/conf/ssl-dhparams.pem"
-
 # Generate self-signed default cert for the catch-all 443 block
 if [ ! -f "$CERTBOT_DIR/conf/live/default/fullchain.pem" ]; then
     echo "[Obelisk] Creating default self-signed certificate..."
@@ -73,25 +70,9 @@ if [ -n "$server_domain" ]; then
     fi
 fi
 
-# Module domains
-yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
-    domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
-    if [ -z "$domain" ] || [ "$domain" = "null" ]; then
-        continue
-    fi
-    if [ -f "$CERTBOT_DIR/conf/live/${domain}/fullchain.pem" ] && \
-       [ -f "$CERTBOT_DIR/conf/live/${domain}/privkey.pem" ]; then
-        echo "[Obelisk] Certificate for ${domain} already exists, skipping."
-        continue
-    fi
-    echo "[Obelisk] Creating dummy certificate for ${domain}..."
-    mkdir -p "$CERTBOT_DIR/conf/live/${domain}"
-    openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
-        -keyout "$CERTBOT_DIR/conf/live/${domain}/privkey.pem" \
-        -out "$CERTBOT_DIR/conf/live/${domain}/fullchain.pem" \
-        -subj "/CN=${domain}"
-    echo "${domain}" >> "$pending_file"
-done
+# Module domains are fronted by CloudFront with an HTTP-only origin, so nginx
+# serves them over plain HTTP and they need no cert here. HTTP-01 challenges
+# can't reach them anyway (they CNAME to CloudFront), so we don't request any.
 
 if [ ! -f "$pending_file" ]; then
     echo "[Obelisk] All certificates up to date."
@@ -123,9 +104,14 @@ while IFS= read -r domain; do
     [ -z "$domain" ] && continue
 
     echo "[Obelisk] Deleting dummy certificate for ${domain}..."
-    rm -rf "$CERTBOT_DIR/conf/live/${domain}"
-    rm -rf "$CERTBOT_DIR/conf/archive/${domain}"
-    rm -f "$CERTBOT_DIR/conf/renewal/${domain}.conf"
+    # These paths were created by the certbot container as root, so delete them
+    # from inside a root container too — a host-side rm hits "Permission denied".
+    docker run --rm \
+        -v "${SCRIPT_DIR}/${CERTBOT_DIR}/conf:/etc/letsencrypt" \
+        alpine:3.20 rm -rf \
+        "/etc/letsencrypt/live/${domain}" \
+        "/etc/letsencrypt/archive/${domain}" \
+        "/etc/letsencrypt/renewal/${domain}.conf"
 
     echo "[Obelisk] Requesting Let's Encrypt certificate for ${domain}..."
 

@@ -15,3 +15,19 @@ crashing the whole webserver.
 ## SSL init should skip non-public domains
 
 `obelisk run` with `OBELISK_SSL=true` attempts to request Let's Encrypt certificates for all configured domains, including `.localhost` domains that can never pass ACME validation. The SSL init script should detect non-public TLDs (e.g. `.localhost`, `.local`, `.test`) and skip certificate requests for them, or only attempt SSL for domains in the production environment.
+
+## SSL init `fix_certbot_permissions` fails silently
+
+`fix_certbot_permissions()` in `.obelisk/ssl/init-ssl.sh` swallows all errors
+(`2>/dev/null || true`). The certbot container writes `conf/{live,archive,renewal}`
+files as root, and this helper is what chowns them back to the host user. When it
+silently fails (e.g. the `alpine:3.20` image can't be pulled on a locked-down prod
+host), the breakage doesn't surface until a later host-side `rm` hits
+`Permission denied` — which is how this was discovered on prod
+(`rm: cannot remove '.obelisk/certbot/conf/archive/<domain>': Permission denied`).
+
+The immediate `rm` was made robust by deleting via a root container instead of on
+the host (committed). Remaining work: make `fix_certbot_permissions` warn loudly
+(or fail) when the chown doesn't succeed, so a broken certbot-permissions state is
+reported at the source instead of three steps downstream. Held off initially since
+it's a behavior change beyond the reported bug.

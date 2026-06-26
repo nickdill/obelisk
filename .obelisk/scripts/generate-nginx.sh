@@ -39,8 +39,6 @@ server {
 
     ssl_certificate /etc/letsencrypt/live/${server_domain}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${server_domain}/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     location / {
         default_type text/html;
@@ -161,47 +159,9 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
         # there. `dist` is purely a build/extract concern now, not a serve path.
         static_root="/obelisk/static/${name}/"
 
-        if [ "$SSL_ENABLED" = "true" ]; then
-            cat > ".obelisk/nginx/${name}.conf" << NGINX
-server {
-    listen 80;
-    server_name ${domain};
-
-    root ${static_root};
-    index index.html;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        try_files \$uri \$uri/ /index.html;
-        add_header Cache-Control "no-cache" always;
-        add_header X-Content-Type-Options "nosniff" always;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name ${domain};
-
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    root ${static_root};
-    index index.html;
-
-    location / {
-        try_files \$uri \$uri/ /index.html;
-        add_header Cache-Control "no-cache" always;
-        add_header X-Content-Type-Options "nosniff" always;
-    }
-}
-NGINX
-        else
-            cat > ".obelisk/nginx/${name}.conf" << NGINX
+        # Module domains are fronted by CloudFront (HTTP-only origin), so nginx
+        # serves them over plain HTTP — no per-domain TLS cert needed here.
+        cat > ".obelisk/nginx/${name}.conf" << NGINX
 server {
     listen 80;
     server_name ${domain};
@@ -216,7 +176,6 @@ server {
     }
 }
 NGINX
-        fi
     else
         if [ "${OBELISK_MODE:-}" = "swarm" ] && [ "$git_source" != "null" ] && [ -n "$git_source" ] && { [ -z "$image" ] || [ "$image" = "null" ]; }; then
             echo "[Obelisk] skipping nginx config for '${name}' (git_source not deployable in swarm)" >&2
@@ -230,57 +189,11 @@ NGINX
             port=$(yq e ".modules[\"${name}\"].port // 8080" "$CONFIG_FILE")
         fi
 
-        if [ "$SSL_ENABLED" = "true" ]; then
-            cat > ".obelisk/nginx/${name}.conf" << NGINX
-server {
-    listen 80;
-    server_name ${domain};
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        resolver 127.0.0.11 valid=10s;
-        set \$upstream http://${name}:${port};
-        proxy_pass \$upstream;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_read_timeout 86400;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name ${domain};
-
-    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    location / {
-        resolver 127.0.0.11 valid=10s;
-        set \$upstream http://${name}:${port};
-        proxy_pass \$upstream;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_read_timeout 86400;
-    }
-}
-NGINX
-        else
-            cat > ".obelisk/nginx/${name}.conf" << NGINX
+        # Module domains are fronted by CloudFront (HTTP-only origin), so nginx
+        # proxies them over plain HTTP — no per-domain TLS cert needed here.
+        # X-Forwarded-Proto is taken from CloudFront's header so upstreams still
+        # see the original https scheme.
+        cat > ".obelisk/nginx/${name}.conf" << NGINX
 server {
     listen 80;
     server_name ${domain};
@@ -300,7 +213,6 @@ server {
     }
 }
 NGINX
-        fi
     fi
 done
 
