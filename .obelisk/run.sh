@@ -51,10 +51,14 @@ fi
 
 echo "[Obelisk] Deploying stack..."
 docker stack deploy --with-registry-auth \
+    --resolve-image always \
     -c docker-compose.yml \
     -c docker-compose.override.yml \
     -c docker-compose.swarm.yml \
     obelisk
+
+echo "[Obelisk] Syncing static module assets..."
+sh .obelisk/scripts/sync-static.sh
 
 echo "[Obelisk] Reloading nginx..."
 NGINX_CONTAINER=$(docker ps --filter "name=obelisk_nginx-webserver" --format "{{.ID}}" | head -1)

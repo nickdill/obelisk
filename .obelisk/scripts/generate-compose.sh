@@ -42,7 +42,15 @@ echo "$modules" | while read -r name; do
     replicas=$(yq e ".modules[\"${name}\"].replicas // 1" "$CONFIG_FILE")
 
     if [ "$module_type" = "static" ]; then
-        if [ "$git_source" != "null" ] && [ -n "$git_source" ]; then
+        if [ "${OBELISK_MODE:-}" = "swarm" ]; then
+            # Production: nginx serves all static sites from the shared named
+            # volume; assets are placed there by sync-static.sh (docker pull +
+            # extract). A single mount covers every static module — repeated
+            # lines are de-duplicated when the override is assembled below.
+            echo "      - static:/obelisk/static:ro" >> "$static_volumes_tmp"
+        elif [ "$git_source" != "null" ] && [ -n "$git_source" ]; then
+            # Local dev: bind-mount the built assets straight into nginx so the
+            # served path (/obelisk/static/${name}/) matches production.
             dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
             if [ -z "$dist" ] || [ "$dist" = "null" ]; then
                 if [ -f "${git_source}/obelisk.yml" ]; then
@@ -55,7 +63,7 @@ echo "$modules" | while read -r name; do
             if [ "$dist" = "." ]; then
                 echo "      - ${abs_source}:/obelisk/static/${name}:ro" >> "$static_volumes_tmp"
             else
-                echo "      - ${abs_source}/${dist}:/obelisk/static/${name}/${dist}:ro" >> "$static_volumes_tmp"
+                echo "      - ${abs_source}/${dist}:/obelisk/static/${name}:ro" >> "$static_volumes_tmp"
             fi
         fi
         continue
@@ -171,7 +179,8 @@ YAML
     fi
     echo "    volumes:" >> docker-compose.override.yml
     if [ -s "$static_volumes_tmp" ]; then
-        cat "$static_volumes_tmp" >> docker-compose.override.yml
+        # De-duplicate: swarm mode writes the shared mount once per static module.
+        awk '!seen[$0]++' "$static_volumes_tmp" >> docker-compose.override.yml
     fi
     if [ -n "$ssl_volumes" ]; then
         echo "$ssl_volumes" >> docker-compose.override.yml

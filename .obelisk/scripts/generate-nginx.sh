@@ -155,20 +155,11 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
     fi
 
     if [ "$module_type" = "static" ]; then
-        dist=$(yq e ".modules[\"${name}\"].dist" "$CONFIG_FILE")
-        if [ -z "$dist" ] || [ "$dist" = "null" ]; then
-            if [ "$git_source" != "null" ] && [ -n "$git_source" ] && [ -f "${git_source}/obelisk.yml" ]; then
-                dist=$(yq e ".dist // \".\"" "${git_source}/obelisk.yml")
-            else
-                dist="."
-            fi
-        fi
-
-        if [ "$dist" = "." ]; then
-            static_root="/obelisk/static/${name}/"
-        else
-            static_root="/obelisk/static/${name}/${dist}/"
-        fi
+        # The served path is always /obelisk/static/${name}/ regardless of the
+        # module's `dist` setting: in local dev the dist dir is bind-mounted
+        # there, and in production sync-static.sh extracts the dist contents
+        # there. `dist` is purely a build/extract concern now, not a serve path.
+        static_root="/obelisk/static/${name}/"
 
         if [ "$SSL_ENABLED" = "true" ]; then
             cat > ".obelisk/nginx/${name}.conf" << NGINX

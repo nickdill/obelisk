@@ -14,5 +14,7 @@ modules:
     git_source: ../obelisk-dev
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      OBELISK_DOCKER_NETWORK: obelisk_obelisk
     domains:
       local: dev.localhost

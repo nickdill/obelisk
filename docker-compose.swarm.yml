@@ -2,3 +2,8 @@ networks:
   obelisk:
     driver: overlay
     attachable: true
+
+volumes:
+  # Shared store for static-module assets. sync-static.sh extracts each static
+  # module's built files into a per-module subdirectory; nginx serves them.
+  static: {}
