@@ -4,8 +4,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-existing_driver=$(docker network inspect obelisk --format '{{.Driver}}' 2>/dev/null || echo "")
-if [ "$existing_driver" = "bridge" ]; then
+# Free the bridge network if a local-dev compose stack is still up before we swarm-deploy.
+if [ -n "$(docker compose ps -q 2>/dev/null)" ]; then
     echo "[Obelisk] Bringing down compose stack to free bridge network..."
     docker compose down 2>/dev/null || true
 fi
