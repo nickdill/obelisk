@@ -39,10 +39,25 @@ modules:
       production:
         - dashboard.example.com
         - www.dashboard.example.com
+  site:
+    type: static
+    domains:
+      # The first domain is canonical; it serves content.
+      production: www.example.com
+    redirects:
+      # These hostnames 301 to the canonical domain instead of serving content.
+      # Useful for apex→www (or www→apex) on static sites, which can't redirect
+      # themselves. Flip the two keys to make the apex canonical instead.
+      production: example.com
 ```
 
 A module's per-environment domain may be a single hostname (as `api` above) or a
 list of hostnames (as `dashboard`). Single-hostname configs are unchanged.
+
+The optional `redirects` key mirrors `domains` (scalar or list, per environment).
+Listed hostnames issue a `301` to the module's canonical domain — the first entry
+under `domains` for that environment — rather than serving content. Omit it to
+serve every hostname identically (the default).
 
 Then bring everything up:
 

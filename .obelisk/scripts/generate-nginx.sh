@@ -158,6 +158,14 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
     # serves all of this module's domains.
     server_names=$(echo "$domains" | xargs)
 
+    # The first served domain is the canonical target for any redirects.
+    canonical=$(echo "$domains" | head -n1)
+
+    # redirects[env] (optional, scalar or list) lists hostnames that should 301
+    # to the canonical domain instead of serving content. Same flatten trick as
+    # domains above.
+    redirect_domains=$(yq e "[.modules[\"${name}\"].redirects[\"${OBELISK_ENV}\"]] | flatten | .[] | select(. != null)" "$CONFIG_FILE")
+
     if [ "$module_type" = "static" ]; then
         # The served path is always /obelisk/static/${name}/ regardless of the
         # module's `dist` setting: in local dev the dist dir is bind-mounted
@@ -217,6 +225,21 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 86400;
     }
+}
+NGINX
+    fi
+
+    # Redirect hostnames issue a 301 to the canonical domain. Emitted for both
+    # static and proxied modules. Target uses https:// since CloudFront
+    # terminates TLS at the edge.
+    if [ -n "$redirect_domains" ]; then
+        redirect_server_names=$(echo "$redirect_domains" | xargs)
+        cat >> ".obelisk/nginx/${name}.conf" << NGINX
+
+server {
+    listen 80;
+    server_name ${redirect_server_names};
+    return 301 https://${canonical}\$request_uri;
 }
 NGINX
     fi
