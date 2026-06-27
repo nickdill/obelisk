@@ -34,8 +34,15 @@ modules:
     git_source: ../dashboard
     domains:
       local: dashboard.localhost
-      production: dashboard.example.com
+      # A module can answer for several domains at once — list them and nginx
+      # routes them all to the same service.
+      production:
+        - dashboard.example.com
+        - www.dashboard.example.com
 ```
+
+A module's per-environment domain may be a single hostname (as `api` above) or a
+list of hostnames (as `dashboard`). Single-hostname configs are unchanged.
 
 Then bring everything up:
 
@@ -56,7 +63,7 @@ Obelisk handles port allocation, generates the Compose files, and configures ngi
 
 ## Environments
 
-Obelisk supports per-environment domain configuration via the `OBELISK_ENV` variable. Each module declares a `domains:` map keyed by environment name — Obelisk uses the active environment to determine which domain to route.
+Obelisk supports per-environment domain configuration via the `OBELISK_ENV` variable. Each module declares a `domains:` map keyed by environment name — Obelisk uses the active environment to determine which domain to route. Each environment entry may be a single hostname or a list of hostnames, all routed to the same module.
 
 ```sh
 cp .env.example .env

@@ -38,9 +38,9 @@ if [ -n "$server_domain" ] && [ "$server_domain" != "null" ]; then
 fi
 
 yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
-    domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
-    if [ -n "$domain" ] && [ "$domain" != "null" ]; then
-        printf "  %-12s %s\n" "${name}:" "${SCHEME}://${domain}${PORT_SUFFIX}"
-    fi
+    # domains[env] may be a scalar (legacy) or a list; normalize and print each.
+    yq e "[.modules[\"${name}\"].domains[\"${OBELISK_ENV}\"]] | flatten | .[] | select(. != null)" "$CONFIG_FILE" | while read -r domain; do
+        [ -n "$domain" ] && printf "  %-12s %s\n" "${name}:" "${SCHEME}://${domain}${PORT_SUFFIX}"
+    done
 done
 echo ""

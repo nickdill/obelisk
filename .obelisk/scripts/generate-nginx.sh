@@ -146,11 +146,17 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
             module_type="module"
         fi
     fi
-    domain=$(yq e ".modules[\"${name}\"].domains[\"${OBELISK_ENV}\"] // \"\"" "$CONFIG_FILE")
+    # domains[env] may be a single scalar (legacy) or a list. Wrapping in an
+    # array literal + flatten normalizes both into a newline list of hostnames.
+    domains=$(yq e "[.modules[\"${name}\"].domains[\"${OBELISK_ENV}\"]] | flatten | .[] | select(. != null)" "$CONFIG_FILE")
 
-    if [ -z "$domain" ] || [ "$domain" = "null" ]; then
+    if [ -z "$domains" ]; then
         continue
     fi
+
+    # nginx server_name takes multiple space-separated hostnames; one block
+    # serves all of this module's domains.
+    server_names=$(echo "$domains" | xargs)
 
     if [ "$module_type" = "static" ]; then
         # The served path is always /obelisk/static/${name}/ regardless of the
@@ -164,7 +170,7 @@ yq e '.modules // {} | keys | .[]' "$CONFIG_FILE" | while read -r name; do
         cat > ".obelisk/nginx/${name}.conf" << NGINX
 server {
     listen 80;
-    server_name ${domain};
+    server_name ${server_names};
 
     root ${static_root};
     index index.html;
@@ -196,7 +202,7 @@ NGINX
         cat > ".obelisk/nginx/${name}.conf" << NGINX
 server {
     listen 80;
-    server_name ${domain};
+    server_name ${server_names};
 
     location / {
         resolver 127.0.0.11 valid=10s;
